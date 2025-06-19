@@ -1,6 +1,7 @@
-
 import { Inngest } from "inngest";
 import User from "../Models/User.model.js";
+import { connect } from "mongoose";
+import connectDB from "../configs/dbconnect.js";
 
 export const inngest = new Inngest({ id: "Movie_reservation_system" });
 
@@ -10,6 +11,7 @@ const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
   async ({ event }) => {
+    await connectDB();
     const { id, first_name, last_name, email_addresses, image_url } =
       event.data;
     const userData = {
