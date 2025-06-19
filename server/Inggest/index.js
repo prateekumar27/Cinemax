@@ -1,5 +1,6 @@
 
 import { Inngest } from "inngest";
+import User from "../Models/User.model.js";
 
 export const inngest = new Inngest({ id: "Movie_reservation_system" });
 
