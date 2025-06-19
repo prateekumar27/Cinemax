@@ -22,7 +22,7 @@ server.use(cors());
 server.get("/", (req, res) => {
   res.send("server is running");
 });
-app.use("/api/inngest", serve({ client: inngest, functions }));
+server.use("/api/inngest", serve({ client: inngest, functions }));
 
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);

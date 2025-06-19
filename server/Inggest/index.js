@@ -1,4 +1,4 @@
-import { User } from "@clerk/express";
+
 import { Inngest } from "inngest";
 
 export const inngest = new Inngest({ id: "Movie_reservation_system" });
