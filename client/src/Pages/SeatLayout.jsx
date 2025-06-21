@@ -6,6 +6,7 @@ import { ArrowRightIcon, ClockIcon } from "lucide-react";
 import isoTimeFormat from "../Lib/IsoTimeFormat";
 import BlurCircle from "../Components/BlurCircle";
 import { toast } from "react-hot-toast";
+import { useAppContext } from "../Context/AppContext";
 
 const SeatLayout = () => {
   const grouprows = [
@@ -21,15 +22,20 @@ const SeatLayout = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [show, setShow] = useState(null);
 
+  const [occupiedSeats, setOccupiedSeats] = useState([]);
+
   const navigate = useNavigate();
 
+  const { axios, getToken, user } = useAppContext();
+
   const getShow = async () => {
-    const show = dummyShowsData.find((show) => show._id === id);
-    if (show) {
-      setShow({
-        movie: show,
-        dateTime: dummyDateTimeData,
-      });
+    try {
+      const { data } = await axios.get(`/api/show/${id}`);
+      if (data.success) {
+        setShow(data);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -39,6 +45,9 @@ const SeatLayout = () => {
     }
     if (!selectedSeats.includes(seatId) && selectedSeats.length > 4) {
       return toast("You can only select up to 5 seats");
+    }
+    if (occupiedSeats.includes(seatId)) {
+      return toast("This seat is already taken");
     }
     setSelectedSeats((prev) =>
       prev.includes(seatId)
@@ -56,9 +65,10 @@ const SeatLayout = () => {
             <button
               key={seatId}
               onClick={() => handleSeatClick(seatId)}
-              className={`h-8 w-8 rounded border border-primary/60 cursor-pointer ${
-                selectedSeats.includes(seatId) ? "bg-primary text-white" : ""
-              }`}
+              className={`h-8 w-8 rounded border border-primary/60 cursor-pointer
+                 ${
+                   selectedSeats.includes(seatId) ? "bg-primary text-white" : ""
+                 } ${occupiedSeats.includes(seatId) && "opacity-50"}`}
             >
               {seatId}
             </button>
@@ -68,9 +78,56 @@ const SeatLayout = () => {
     </div>
   );
 
+  const getOccupiedSeats = async () => {
+    try {
+      const { data } = await axios.get(
+        `/api/booking/seats/${selectedTime.showId}`
+      );
+      if (data.success) {
+        setOccupiedSeats(data.occupiedSeats);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const bookTicket = async () => {
+    try {
+      if (!user) {
+        return toast.error("Please login to book a ticket");
+      }
+      if (!selectedTime || selectedSeats.length) {
+        return toast.error("Please select a time and a seat");
+      }
+
+      const { data } = await axios.post(
+        "/api/booking/create",
+        { showId: selectedTime.show._id, selectedSeats },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+      if (data.success) {
+        window.location.href = data.url
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  };
+
   useEffect(() => {
     getShow();
   }, []);
+
+  useEffect(() => {
+    if (selectedTime) {
+      getOccupiedSeats();
+    }
+  }, [selectedTime]);
 
   return show ? (
     <div className="flex flex-col md:flex-row px-6 md:px-16 lg:px-40 py-30 md:pt-50">
@@ -80,7 +137,7 @@ const SeatLayout = () => {
           {show.dateTime[date].map((item) => (
             <div
               key={item.time}
-              onClick={() => setSelectedTime(item.time)}
+              onClick={() => setSelectedTime(item)}
               className={`flex items-center gap-2 px-6 py-2 w-max rounded-r-md cursor-pointer transition ${
                 selectedTime === item.time
                   ? "bg-primary text-white"
@@ -115,7 +172,7 @@ const SeatLayout = () => {
         </div>
 
         <button
-          onClick={() => navigate("/my-bookings")}
+          onClick={bookTicket}
           className="flex items-center gap-1 mt-20 py-3 px-10 text-sm bg-primary hover:bg-primary-dull transition rounded-full font-medium cursor-pointer active:scale-95"
         >
           Proceed to checkout

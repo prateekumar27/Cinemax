@@ -15,8 +15,14 @@ import ListShows from "./Pages/Admin/ListShows";
 import ListBookings from "./Pages/Admin/ListBookings";
 import AddShows from "./Pages/Admin/AddShows";
 
+import { useAppContext } from "./Context/AppContext";
+import { SignIn } from "@clerk/clerk-react";
+
 const App = () => {
   const isAdminRoute = useLocation().pathname.startsWith("/admin");
+
+  const { user } = useAppContext();
+
   return (
     <>
       <Toaster />
@@ -27,9 +33,22 @@ const App = () => {
         <Route path="/movies/:id" element={<MovieDetails />} />
         <Route path="/movies/:id/:date" element={<SeatLayout />} />
         <Route path="/my-bookings" element={<MyBooking />} />
+        <Route path="/loading/:nextUrl" element={<Loading />} />
+
         <Route path="/favorite" element={<Favorite />} />
 
-        <Route path="/admin/*" element={<Layout />}>
+        <Route
+          path="/admin/*"
+          element={
+            user ? (
+              <Layout />
+            ) : (
+              <div>
+                <SignIn fallbackRedirectUrl={"/admin/dashboard"} />
+              </div>
+            )
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="list-shows" element={<ListShows />} />
           <Route path="list-bookings" element={<ListBookings />} />

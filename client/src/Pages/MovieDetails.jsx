@@ -3,23 +3,56 @@ import { Heart, PlayCircle, Star } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { dummyDateTimeData, dummyShowsData } from "../assets/assets";
 import BlurCircle from "../Components/BlurCircle";
-import {timeFormat} from "../Lib/TimeFormat";
+import { timeFormat } from "../Lib/TimeFormat";
 import DateSelect from "../Components/DateSelect";
 import MovieCard from "../Components/MovieCard";
 import Loading from "../Components/Loading";
+import { useAppContext } from "../Context/AppContext";
+import toast from "react-hot-toast";
 
 const MovieDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [show, setShow] = useState(null);
 
+  const {
+    shows,
+    axios,
+    getToken,
+    user,
+    fetchFavoritesMovies,
+    favoriteMovies,
+    image_base_url,
+  } = useAppContext();
+
   const getShow = async () => {
-    const found = dummyShowsData.find((s) => s._id === id);
-    if (found) {
-      setShow({
-        movie: found,
-        dateTime: dummyDateTimeData,
-      });
+    try {
+      const { data } = await axios.get(`/api/show/${id}`);
+      if (data.success) {
+        setShow(data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleFavorite = async () => {
+    try {
+      if (!user) return toast.error("Please login to add to favorites");
+      const { data } = await axios.post(
+        "/api/user/favorites",
+        { movieId: id },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+
+      if (data.success) {
+        await fetchFavoritesMovies();
+        toast.success(data.message);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -33,7 +66,7 @@ const MovieDetails = () => {
       <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
         {/* Poster */}
         <img
-          src={show.movie.poster_path}
+          src={image_base_url + show.movie.poster_path}
           alt={show.movie.title}
           className="max-md:mx-auto rounded-xl h-96 w-64 object-cover"
         />
@@ -75,8 +108,17 @@ const MovieDetails = () => {
               Buy Tickets
             </a>
 
-            <button className="bg-gray-700 p-2.5 rounded-full transition hover:bg-gray-600">
-              <Heart className="w-5 h-5" />
+            <button
+              onClick={handleFavorite}
+              className="bg-gray-700 p-2.5 rounded-full transition hover:bg-gray-600"
+            >
+              <Heart
+                className={`w-5 h-5 ${
+                  favoriteMovies.find((movie) => movie._id)
+                    ? "fill-primary text-primary"
+                    : ""
+                }`}
+              />
             </button>
           </div>
         </div>
@@ -93,7 +135,7 @@ const MovieDetails = () => {
                 className="flex flex-col items-center text-center text-white"
               >
                 <img
-                  src={cast.profile_path}
+                  src={image_base_url + cast.profile_path}
                   alt={cast.name}
                   className="rounded-full h-20 w-20 object-cover"
                 />
@@ -108,7 +150,7 @@ const MovieDetails = () => {
       <p className="text-lg font-medium mt-20 mb-8">You May Also Like</p>
 
       <div className="flex flex-wrap max-sm:justify-center gap-8">
-        {dummyShowsData.slice(0, 4).map((movie, index) => (
+        {shows.slice(0, 4).map((movie, index) => (
           <MovieCard key={index} movie={movie} />
         ))}
       </div>
@@ -125,9 +167,9 @@ const MovieDetails = () => {
         </button>
       </div>
     </div>
-  ) : 
+  ) : (
     <Loading />
-  
+  );
 };
 
 export default MovieDetails;
