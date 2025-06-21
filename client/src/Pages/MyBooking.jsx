@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { dummyBookingData } from "../assets/assets";
+
 import Loading from "../Components/Loading";
 import BlurCircle from "../Components/BlurCircle";
 import { dateFormat } from "../Lib/DateFormat";
 import { timeFormat } from "../Lib/TimeFormat";
 import { useAppContext } from "../Context/AppContext";
+import { Link } from "react-router-dom";
 
 const MyBooking = () => {
   const currency = import.meta.env.VITE_CURRENCY;
@@ -71,9 +72,12 @@ const MyBooking = () => {
                 {item.amount}
               </p>
               {!item.isPaid && (
-                <button className="bg-primary px-4 py-1.5 mb-3 text-sm rounded-full font-medium cursor-pointer">
+                <Link
+                  to={item.paymentLink}
+                  className="bg-primary px-4 py-1.5 mb-3 text-sm rounded-full font-medium cursor-pointer"
+                >
                   Pay Now
-                </button>
+                </Link>
               )}
             </div>
 

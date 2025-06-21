@@ -1,7 +1,7 @@
 import { Inngest } from "inngest";
 import User from "../Models/User.model.js";
-import { connect } from "mongoose";
-import connectDB from "../configs/dbconnect.js";
+import Booking from "../Models/Booking.model.js";
+import Show from "../Models/Show.model.js";
 
 export const inngest = new Inngest({ id: "Movie_reservation_system" });
 
@@ -52,4 +52,33 @@ const syncUserUpdation = inngest.createFunction(
   }
 );
 
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdation];
+export const releaseSeatsAndDeleteBooking = inngest.createFunction(
+  { id: "release-seats-and-delete-booking" },
+  { event: "app/checkpayment" },
+  async ({ event, step }) => {
+    const tenMinutesLater = new Date(Date.now() + 10 * 60 * 1000);
+    await step.sleepUntil("wait-for-10-minutes", tenMinutesLater);
+
+    await step.run("check-payment-status", async () => {
+      const { bookingId } = event.data.bookingId;
+      const booking = await Booking.findById(bookingId);
+
+      if (booking.isPaid) {
+        const showData = await Show.findById(booking.show);
+       booking.bookedSeats.forEach((seat) => {
+         delete showData.occupiedSeats[seat];
+       })
+        showData.markModified("occupiedSeats");
+        await showData.save();
+        await Booking.findByIdAndDelete(bookingId);
+      }
+    });
+  }
+);
+
+export const functions = [
+  syncUserCreation,
+  syncUserDeletion,
+  syncUserUpdation,
+  releaseSeatsAndDeleteBooking,
+];

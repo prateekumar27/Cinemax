@@ -1,3 +1,4 @@
+import { inngest } from "../Inggest/index.js";
 import Booking from "../Models/Booking.model.js";
 import Show from "../Models/Show.model.js";
 
@@ -80,8 +81,17 @@ export const createBooking = async (req, res) => {
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     });
 
-    booking.paymentLink = session.url;
-    await booking.save();
+    newBooking.paymentLink = session.url;
+    await newBooking.save();
+
+
+await inngest.send({
+  name: "app/checkpayment",
+  data: {
+    bookingId: newBooking._id.toString(),
+  },
+});
+
 
     res.json({ success: true, url: session.url });
   } catch (error) {
